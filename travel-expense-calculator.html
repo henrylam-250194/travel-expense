@@ -1,0 +1,587 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Du Lịch Cùng Nhau – Tính Chi Phí</title>
+<meta name="description" content="Tính toán và quyết toán chi phí du lịch cho các cặp đôi đi chung">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #eff1ec;
+  --surface: #ffffff;
+  --primary: #1e6649;
+  --primary-dark: #14402f;
+  --primary-mid: #28865e;
+  --primary-light: #e2f2ea;
+  --amber: #c97f10;
+  --teal: #156161;
+  --text: #1c1b18;
+  --text-2: #5c5a52;
+  --border: #d9d6ce;
+  --green: #135c3c;
+  --green-bg: #e5f5ed;
+  --red: #b32b20;
+  --red-bg: #fcecea;
+  --r: 10px;
+}
+
+html { font-size: 16px; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Header ─────────────────────────────────────────── */
+header {
+  background: var(--primary-dark);
+  padding: 1.75rem 1.5rem 2rem;
+  text-align: center;
+}
+header h1 { color: #fff; font-size: 1.5rem; font-weight: 700; letter-spacing: -0.4px; text-wrap: balance; }
+header p  { margin-top: 0.3rem; color: rgba(255,255,255,0.58); font-size: 0.85rem; }
+
+/* ── Layout ─────────────────────────────────────────── */
+main {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 1.125rem 1rem 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* ── Card ────────────────────────────────────────────── */
+.card { background: var(--surface); border-radius: var(--r); border: 1px solid var(--border); overflow: hidden; }
+.card-head {
+  padding: 0.7rem 1.25rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #fff;
+  line-height: 1.2;
+}
+.card-body { padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; }
+
+#settings .card-head { background: var(--primary); }
+#coupleA  .card-head { background: var(--amber); color: #1c1b18; }
+#coupleB  .card-head { background: var(--teal); }
+#results  .card-head { background: var(--primary-dark); }
+
+/* ── Radio ────────────────────────────────────────────── */
+.radio-row { display: flex; gap: 0.5rem; }
+.rb { flex: 0 0 auto; position: relative; }
+.rb input { position: absolute; opacity: 0; width: 0; height: 0; }
+.rb label {
+  display: flex; align-items: center;
+  padding: 0.5rem 1.125rem;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.875rem; font-weight: 500;
+  color: var(--text-2);
+  transition: all 0.15s;
+  user-select: none;
+}
+.rb input:checked + label { border-color: var(--primary); background: var(--primary-light); color: var(--primary); }
+.rb label:hover { border-color: var(--primary-mid); }
+.rb input:focus-visible + label { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+/* ── Field ────────────────────────────────────────────── */
+.field { display: flex; flex-direction: column; gap: 0.28rem; }
+.field label { font-size: 0.77rem; font-weight: 500; color: var(--text-2); }
+
+input[type=text] {
+  width: 100%;
+  border: 1.5px solid var(--border);
+  border-radius: 7px;
+  padding: 0.52rem 0.875rem;
+  font-size: 0.875rem;
+  font-family: inherit;
+  color: var(--text);
+  background: #faf9f7;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+input[type=text]:focus {
+  border-color: var(--primary-mid);
+  box-shadow: 0 0 0 3px rgba(40,134,94,0.12);
+  background: #fff;
+}
+
+.names-grid { display: flex; gap: 0.625rem; flex-wrap: wrap; }
+.names-grid .field { flex: 1; min-width: 95px; }
+
+/* ── Expense item rows ───────────────────────────────── */
+.items-list { display: flex; flex-direction: column; gap: 0.45rem; }
+
+.item-row { display: flex; gap: 0.5rem; align-items: center; }
+
+.item-desc { flex: 1; min-width: 0; }
+
+input.item-amt {
+  width: 120px;
+  flex-shrink: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+.del-btn {
+  width: 30px; height: 32px;
+  border: none;
+  background: var(--red-bg);
+  color: var(--red);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0;
+  transition: background 0.12s, color 0.12s;
+}
+.del-btn:hover { background: var(--red); color: #fff; }
+.del-btn:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+
+.add-btn {
+  align-self: flex-start;
+  padding: 0.38rem 0.875rem;
+  background: transparent;
+  border: 1.5px dashed var(--border);
+  border-radius: 7px;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.add-btn:hover { border-color: var(--primary); color: var(--primary); border-style: solid; background: var(--primary-light); }
+.add-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+.subtotal-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding-top: 0.625rem;
+  border-top: 1px solid var(--border);
+}
+.sub-label { font-size: 0.77rem; color: var(--text-2); font-weight: 500; }
+.sub-amt { font-weight: 700; font-variant-numeric: tabular-nums; font-size: 0.9rem; color: var(--text-2); }
+.sub-amt.live { color: var(--primary); }
+
+/* ── Results table ───────────────────────────────────── */
+.tbl-wrap { overflow-x: auto; padding: 0.875rem 1.25rem 0; }
+table { width: 100%; border-collapse: collapse; font-size: 0.875rem; min-width: 300px; }
+th {
+  text-align: right;
+  font-size: 0.66rem; font-weight: 700;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--text-2);
+  padding: 0 0.5rem 0.6rem;
+  border-bottom: 1.5px solid var(--border);
+  white-space: nowrap;
+}
+th:first-child { text-align: left; padding-left: 0; }
+td {
+  padding: 0.575rem 0.5rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  border-bottom: 1px solid #f0ece6;
+}
+td:first-child { text-align: left; padding-left: 0; font-weight: 500; }
+tr:last-child td { border-bottom: none; }
+tfoot td { font-weight: 700; border-top: 1.5px solid var(--border); border-bottom: none; padding-top: 0.7rem; }
+
+.chip {
+  display: inline-flex; align-items: center;
+  padding: 0.175rem 0.5rem;
+  border-radius: 100px;
+  font-size: 0.77rem; font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.chip-pos { background: var(--green-bg); color: var(--green); }
+.chip-neg { background: var(--red-bg);   color: var(--red); }
+.chip-zer { background: #f0ece6;         color: var(--text-2); }
+
+/* ── Settlement ──────────────────────────────────────── */
+.settle { padding: 0.875rem 1.25rem 1.125rem; border-top: 1px solid var(--border); }
+.settle-label {
+  font-size: 0.66rem; font-weight: 700;
+  letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--text-2); margin-bottom: 0.7rem;
+}
+.tx-list { display: flex; flex-direction: column; gap: 0.45rem; }
+.tx {
+  display: flex; align-items: center; gap: 0.625rem;
+  padding: 0.65rem 0.875rem;
+  background: #faf9f7;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.tx-from { font-weight: 600; font-size: 0.875rem; color: var(--red); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tx-arr  { color: var(--text-2); font-size: 0.875rem; flex-shrink: 0; }
+.tx-to   { font-weight: 600; font-size: 0.875rem; color: var(--green); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
+.tx-amt  { flex-shrink: 0; font-weight: 700; font-size: 0.875rem; font-variant-numeric: tabular-nums; padding: 0.18rem 0.5rem; background: #fff; border: 1px solid var(--border); border-radius: 6px; white-space: nowrap; }
+
+.settled { background: var(--green-bg); border-radius: 8px; padding: 0.875rem; text-align: center; color: var(--green); font-weight: 600; font-size: 0.875rem; }
+
+/* ── Reset ───────────────────────────────────────────── */
+#resetBtn {
+  align-self: center;
+  padding: 0.62rem 1.75rem;
+  background: #fff;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.875rem; font-weight: 500;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+#resetBtn:hover { border-color: var(--primary); color: var(--primary); }
+#resetBtn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Du Lịch Cùng Nhau</h1>
+  <p>Tính &amp; quyết toán chi phí cho các cặp đôi</p>
+</header>
+
+<main>
+
+  <!-- Settings -->
+  <div class="card" id="settings">
+    <div class="card-head">Cài đặt chuyến đi</div>
+    <div class="card-body">
+      <div class="field">
+        <label>Số cặp đôi</label>
+        <div class="radio-row">
+          <div class="rb">
+            <input type="radio" name="n" id="r2" value="2" checked>
+            <label for="r2">2 cặp</label>
+          </div>
+          <div class="rb">
+            <input type="radio" name="n" id="r3" value="3">
+            <label for="r3">3 cặp</label>
+          </div>
+          <div class="rb">
+            <input type="radio" name="n" id="r4" value="4">
+            <label for="r4">4 cặp</label>
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Tên các cặp (tuỳ chọn)</label>
+        <div class="names-grid">
+          <div class="field">
+            <input type="text" id="nA" placeholder="Cặp A" maxlength="18" autocomplete="off">
+          </div>
+          <div class="field">
+            <input type="text" id="nB" placeholder="Cặp B" maxlength="18" autocomplete="off">
+          </div>
+          <div class="field hidden" id="nC-wrap">
+            <input type="text" id="nC" placeholder="Cặp C" maxlength="18" autocomplete="off">
+          </div>
+          <div class="field hidden" id="nD-wrap">
+            <input type="text" id="nD" placeholder="Cặp D" maxlength="18" autocomplete="off">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Couple A -->
+  <div class="card" id="coupleA">
+    <div class="card-head" id="headA">Cặp A — Ăn uống &amp; Lưu trú</div>
+    <div class="card-body">
+      <div class="items-list" id="items-A"></div>
+      <button type="button" class="add-btn" id="addA">+ Thêm khoản</button>
+      <div class="subtotal-row">
+        <span class="sub-label">Tổng Cặp A</span>
+        <span class="sub-amt" id="sub-A">0 ₫</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Couple B -->
+  <div class="card" id="coupleB">
+    <div class="card-head" id="headB">Cặp B — Xăng xe &amp; Cầu đường</div>
+    <div class="card-body">
+      <div class="items-list" id="items-B"></div>
+      <button type="button" class="add-btn" id="addB">+ Thêm khoản</button>
+      <div class="subtotal-row">
+        <span class="sub-label">Tổng Cặp B</span>
+        <span class="sub-amt" id="sub-B">0 ₫</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="card hidden" id="results">
+    <div class="card-head">Kết quả quyết toán</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Cặp</th>
+            <th>Đã trả</th>
+            <th>Phần phải trả</th>
+            <th>Số dư</th>
+          </tr>
+        </thead>
+        <tbody id="tBody"></tbody>
+        <tfoot>
+          <tr>
+            <td>Tổng</td>
+            <td id="totPaid"></td>
+            <td id="totShare"></td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <div class="settle" id="settle"></div>
+  </div>
+
+  <button id="resetBtn" type="button">Tính lại từ đầu</button>
+
+</main>
+
+<script>
+// ── Helpers ────────────────────────────────────────────
+function vnd(n) { return Math.round(n).toLocaleString('vi-VN') + ' ₫'; }
+function fmtInput(str) {
+  const d = str.replace(/[^\d]/g, '');
+  return d ? Number(d).toLocaleString('vi-VN') : '';
+}
+function parse(str) { return parseInt((str || '').replace(/[^\d]/g, ''), 10) || 0; }
+
+// ── State ──────────────────────────────────────────────
+let itemsA = [], itemsB = [], nextId = 1;
+function newItem() { return { id: nextId++, desc: '', amount: 0 }; }
+
+// ── Settlement ─────────────────────────────────────────
+function settle(couples) {
+  const pos = [], neg = [];
+  couples.forEach(c => {
+    if (c.balance > 0.5)  pos.push({ name: c.name, b: c.balance });
+    if (c.balance < -0.5) neg.push({ name: c.name, b: c.balance });
+  });
+  pos.sort((a, b) => b.b - a.b);
+  neg.sort((a, b) => a.b - b.b);
+  const txs = [];
+  let pi = 0, ni = 0;
+  while (pi < pos.length && ni < neg.length) {
+    const amt = Math.min(pos[pi].b, -neg[ni].b);
+    if (amt > 0.5) txs.push({ from: neg[ni].name, to: pos[pi].name, amount: Math.round(amt) });
+    pos[pi].b -= amt; neg[ni].b += amt;
+    if (pos[pi].b < 0.5) pi++;
+    if (neg[ni].b > -0.5) ni++;
+  }
+  return txs;
+}
+
+// ── Recalculate results ────────────────────────────────
+function numCouples() { return parseInt(document.querySelector('input[name=n]:checked').value); }
+function getNames() {
+  const n = numCouples();
+  const a = document.getElementById('nA').value.trim() || 'Cặp A';
+  const b = document.getElementById('nB').value.trim() || 'Cặp B';
+  const c = document.getElementById('nC').value.trim() || 'Cặp C';
+  const d = document.getElementById('nD').value.trim() || 'Cặp D';
+  if (n === 4) return [a, b, c, d];
+  if (n === 3) return [a, b, c];
+  return [a, b];
+}
+
+function recalc() {
+  const ns = getNames();
+  const paidA = itemsA.reduce((s, i) => s + i.amount, 0);
+  const paidB = itemsB.reduce((s, i) => s + i.amount, 0);
+  const total = paidA + paidB;
+
+  if (total === 0) { document.getElementById('results').classList.add('hidden'); return; }
+
+  const share = total / ns.length;
+  const couples = [
+    { name: ns[0], paid: paidA },
+    { name: ns[1], paid: paidB },
+    ...(ns.length === 3 ? [{ name: ns[2], paid: 0 }] : []),
+  ].map(c => ({ ...c, balance: c.paid - share }));
+
+  const tbody = document.getElementById('tBody');
+  tbody.innerHTML = '';
+  couples.forEach(({ name, paid, balance }) => {
+    const b = Math.round(balance);
+    let cls, txt;
+    if (b > 0)      { cls = 'chip-pos'; txt = '+' + vnd(b); }
+    else if (b < 0) { cls = 'chip-neg'; txt = '−' + vnd(-b); }
+    else            { cls = 'chip-zer'; txt = 'Huề'; }
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${name}</td><td>${vnd(paid)}</td><td>${vnd(share)}</td><td><span class="chip ${cls}">${txt}</span></td>`;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('totPaid').textContent  = vnd(total);
+  document.getElementById('totShare').textContent = vnd(total);
+
+  const txs = settle(couples);
+  const el = document.getElementById('settle');
+  if (txs.length === 0) {
+    el.innerHTML = '<div class="settled">Tất cả đã huề — không cần chuyển tiền!</div>';
+  } else {
+    el.innerHTML = `
+      <div class="settle-label">Cần chuyển tiền</div>
+      <div class="tx-list">
+        ${txs.map(t => `<div class="tx">
+          <span class="tx-from">${t.from}</span>
+          <span class="tx-arr">&rarr;</span>
+          <span class="tx-to">${t.to}</span>
+          <span class="tx-amt">${vnd(t.amount)}</span>
+        </div>`).join('')}
+      </div>`;
+  }
+  document.getElementById('results').classList.remove('hidden');
+}
+
+// ── Item list rendering ────────────────────────────────
+function updateSubtotal(group) {
+  const items = group === 'A' ? itemsA : itemsB;
+  const total = items.reduce((s, i) => s + i.amount, 0);
+  const el = document.getElementById('sub-' + group);
+  el.textContent = vnd(total);
+  el.classList.toggle('live', total > 0);
+}
+
+function attachAmtEvents(input, item, group) {
+  input.addEventListener('input', function () {
+    const pos = this.selectionStart;
+    const old = this.value;
+    let dbc = 0;
+    for (let i = 0; i < pos; i++) if (/\d/.test(old[i])) dbc++;
+    this.value = fmtInput(old);
+    let cnt = 0, np = this.value.length;
+    for (let i = 0; i < this.value.length; i++) {
+      if (/\d/.test(this.value[i])) cnt++;
+      if (cnt === dbc) { np = i + 1; break; }
+    }
+    this.setSelectionRange(np, np);
+    item.amount = parse(this.value);
+    updateSubtotal(group);
+    recalc();
+  });
+}
+
+function renderItems(group) {
+  const items = group === 'A' ? itemsA : itemsB;
+  const container = document.getElementById('items-' + group);
+  container.innerHTML = '';
+
+  items.forEach(item => {
+    const row = document.createElement('div');
+    row.className = 'item-row';
+
+    const descInput = document.createElement('input');
+    descInput.type = 'text';
+    descInput.className = 'item-desc';
+    descInput.placeholder = group === 'A' ? 'Ăn phở, nhậu, khách sạn…' : 'Xăng, cầu đường, hầm…';
+    descInput.value = item.desc;
+    descInput.maxLength = 40;
+    descInput.autocomplete = 'off';
+    descInput.addEventListener('input', function () { item.desc = this.value; });
+
+    const amtInput = document.createElement('input');
+    amtInput.type = 'text';
+    amtInput.className = 'item-amt';
+    amtInput.placeholder = '0';
+    amtInput.inputMode = 'numeric';
+    amtInput.autocomplete = 'off';
+    if (item.amount) amtInput.value = item.amount.toLocaleString('vi-VN');
+    attachAmtEvents(amtInput, item, group);
+
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'del-btn';
+    delBtn.setAttribute('aria-label', 'Xóa khoản này');
+    delBtn.textContent = '×';
+    delBtn.addEventListener('click', () => {
+      if (group === 'A') itemsA = itemsA.filter(i => i.id !== item.id);
+      else               itemsB = itemsB.filter(i => i.id !== item.id);
+      renderItems(group);
+      recalc();
+    });
+
+    row.append(descInput, amtInput, delBtn);
+    container.appendChild(row);
+  });
+
+  updateSubtotal(group);
+}
+
+function addItem(group) {
+  const item = newItem();
+  if (group === 'A') itemsA.push(item);
+  else               itemsB.push(item);
+  renderItems(group);
+  const rows = document.querySelectorAll('#items-' + group + ' .item-row');
+  const last = rows[rows.length - 1];
+  if (last) last.querySelector('.item-desc').focus();
+}
+
+// ── Wire up controls ───────────────────────────────────
+document.getElementById('addA').addEventListener('click', () => addItem('A'));
+document.getElementById('addB').addEventListener('click', () => addItem('B'));
+
+function refreshHeaders() {
+  const a = document.getElementById('nA').value.trim() || 'Cặp A';
+  const b = document.getElementById('nB').value.trim() || 'Cặp B';
+  document.getElementById('headA').textContent = a + ' — Ăn uống & Lưu trú';
+  document.getElementById('headB').textContent = b + ' — Xăng xe & Cầu đường';
+}
+['nA','nB','nC','nD'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => { refreshHeaders(); recalc(); });
+});
+
+document.querySelectorAll('input[name=n]').forEach(r => {
+  r.addEventListener('change', () => {
+    const n = numCouples();
+    document.getElementById('nC-wrap').classList.toggle('hidden', n < 3);
+    document.getElementById('nD-wrap').classList.toggle('hidden', n < 4);
+    recalc();
+  });
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  itemsA = []; itemsB = []; nextId = 1;
+  ['nA','nB','nC','nD'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('r2').checked = true;
+  document.getElementById('nC-wrap').classList.add('hidden');
+  document.getElementById('nD-wrap').classList.add('hidden');
+  document.getElementById('headA').textContent = 'Cặp A — Ăn uống & Lưu trú';
+  document.getElementById('headB').textContent = 'Cặp B — Xăng xe & Cầu đường';
+  document.getElementById('results').classList.add('hidden');
+  initGroups();
+});
+
+function initGroups() {
+  itemsA = [newItem()];
+  itemsB = [newItem()];
+  renderItems('A');
+  renderItems('B');
+}
+
+initGroups();
+</script>
+
+</body>
+</html>
